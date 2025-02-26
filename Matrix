@@ -1,0 +1,1898 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Double Materiality Assessment Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .control-group {
+      flex: 1;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .button {
+      padding: 8px 16px;
+      background-color: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .button.active {
+      background-color: #4CAF50;
+      color: white;
+      border-color: #4CAF50;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .chart-container {
+      position: relative;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+      margin-bottom: 20px;
+    }
+
+    .info-panel {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 70%;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 15px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 100;
+      display: none;
+    }
+
+    .info-panel h3 {
+      margin-top: 0;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .info-panel .close {
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    .edit-panel {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+      display: none;
+    }
+
+    .edit-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 10px;
+    }
+
+    .edit-item {
+      padding: 10px;
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    .edit-item-title {
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .edit-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .edit-label {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+
+    .edit-input {
+      width: 100%;
+      padding: 4px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+
+    .regulation-info {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+      display: none;
+    }
+
+    .footer {
+      font-size: 12px;
+      color: #666;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Double Materiality Assessment Tool</h1>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="framework">Reporting Framework:</label>
+        <select id="framework" onchange="renderChart()">
+          <option value="efrag">EFRAG (EU Standards)</option>
+          <option value="sasb">SASB (International Standards)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="sector">Industry Sector:</label>
+        <select id="sector" onchange="renderChart()">
+          <option value="energy">Energy</option>
+          <option value="finance">Financial Services</option>
+          <option value="manufacturing">Manufacturing</option>
+          <option value="technology">Technology</option>
+          <option value="healthcare">Healthcare</option>
+          <option value="retail">Retail</option>
+          <option value="food">Food & Beverage</option>
+          <option value="transportation">Transportation</option>
+          <option value="packaging">Packaging</option>
+          <option value="aerospace">Aerospace & Defense</option>
+          <option value="automotive">Automotive</option>
+          <option value="chemicals">Chemicals</option>
+          <option value="construction">Construction</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button id="editButton" class="button" onclick="toggleEditMode()">Edit Values</button>
+      <button id="regulationButton" class="button" onclick="toggleRegulationDisplay()">Show Regulatory Requirements</button>
+    </div>
+
+    <div id="editPanel" class="edit-panel">
+      <h3>Edit Material Topic Values</h3>
+      <div id="editGrid" class="edit-grid">
+        <!-- Edit controls will be added here dynamically -->
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <svg id="chart" width="100%" height="500" viewBox="0 0 800 600"></svg>
+
+      <div id="infoPanel" class="info-panel">
+        <h3>
+          <span id="topicTitle">Topic Title</span>
+          <span class="close" onclick="hideInfoPanel()">×</span>
+        </h3>
+        <p id="topicInfo">Information about the topic will appear here.</p>
+        <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 14px;">
+          <div>Financial: <span id="financialValue" style="font-weight: bold;">90%</span></div>
+          <div>Impact: <span id="impactValue" style="font-weight: bold;">90%</span></div>
+          <div>Risk: <span id="riskValue" style="font-weight: bold; color: #E53935;">HIGH</span></div>
+        </div>
+        <div id="regulationInfo" class="regulation-info">
+          <h4>Regulatory Requirements:</h4>
+          <p id="regulationText"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>Click on any topic to view more information about regulatory requirements and impact considerations.</p>
+      <p>Data based on EFRAG ESRS and SASB Standards. This tool provides general guidance and should be customized for specific company needs.</p>
+    </div>
+  </div>
+
+  <script>
+    // Data for the materiality assessment by framework and sector
+    const materialityData = {
+      efrag: {
+        energy: [{
+          id: 1,
+          name: "Climate Change",
+          financial: 0.9,
+          impact: 0.95,
+          size: 30,
+          risk: "high",
+          info: "GHG emissions and adaptation strategies. EU CSRD mandatory, SEC Climate Rule proposed.",
+          regulation: "EU CSRD Article 8, NFRD revision, TCFD alignment, EU Taxonomy criteria for climate change mitigation and adaptation. ESRS required KPIs: E1-5: Greenhouse Gas (GHG) emissions (Scope 1, 2, 3), E1-6: Emissions intensity (e.g., per unit of energy produced), E1-7: Renewable energy share in production"
+        }, {
+          id: 2,
+          name: "Energy Management",
+          financial: 0.85,
+          impact: 0.9,
+          size: 28,
+          risk: "medium",
+          info: "Energy consumption and efficiency measures. EU Energy Efficiency Directive applicable.",
+          regulation: "Energy Efficiency Directive (2012/27/EU), Renewable Energy Directive (2018/2001/EU), EU Taxonomy Technical Screening Criteria. ESRS required KPIs: E1-5: Total energy consumption, E1-5: Energy consumption per unit of output, E1-5: Energy efficiency improvements"
+        }, {
+          id: 3,
+          name: "Water Resources",
+          financial: 0.65,
+          impact: 0.8,
+          size: 26,
+          risk: "medium",
+          info: "Water usage, discharge quality, and water-stressed regions impact. EU Water Framework Directive.",
+          regulation: "EU Water Framework Directive (2000/60/EC). ESRS required KPIs: E3-1: Total water withdrawal, E3-2: Water consumption (withdrawal minus discharge), E3-3: Water intensity (per unit of output), E3-4: Water discharge quality (pollutant levels)"
+        }, {
+          id: 4,
+          name: "Biodiversity",
+          financial: 0.55,
+          impact: 0.9,
+          size: 27,
+          risk: "increasing",
+          info: "Ecosystems and species protection. TNFD voluntary reporting, CSRD E4 requirements.",
+          regulation: "TNFD voluntary reporting, EU Biodiversity Strategy for 2030, EU Taxonomy biodiversity criteria. ESRS required KPIs: E4-1: Land use and land-use change impacts, E4-2: Impacts on protected or endangered species, E4-5: Use of biodiversity-related resources"
+        }, {
+          id: 5,
+          name: "Business Ethics",
+          financial: 0.85,
+          impact: 0.5,
+          size: 25,
+          risk: "medium",
+          info: "Anti-corruption, fair competition policies. EU Anti-corruption Directive applicable.",
+          regulation: "EU Anti-corruption Directive, EU Anti-Money Laundering Directive, EU Corporate Sustainability Due Diligence Directive (proposed). ESRS required KPIs: G1-1: Number of corruption incidents, G1-2: Anti-corruption training completion rates, G1-4: Whistleblower cases received and investigated"
+        }],
+        finance: [{
+          id: 1,
+          name: "Climate Risk",
+          financial: 0.8,
+          impact: 0.75,
+          size: 27,
+          risk: "high",
+          info: "Physical and transition risks affect loan portfolios. ECB guidelines, TCFD requirements apply.",
+          regulation: "ECB guidelines, TCFD requirements, ECB Guide on climate-related and environmental risks, EBA Guidelines on Loan Origination and Monitoring. ESRS required KPIs: E1-8: Financed emissions (from loans and investments), E1-9: Climate-related physical and transition risks in financial portfolio, E1-10: Alignment of lending/investment with climate scenarios"
+        }, {
+          id: 2,
+          name: "Data Security",
+          financial: 0.95,
+          impact: 0.8,
+          size: 30,
+          risk: "high",
+          info: "Protection of customer financial data. GDPR, DORA, NIS2, GLBA Safeguards Rule apply.",
+          regulation: "GDPR, DORA, NIS2, GLBA Safeguards Rule, EU General Data Protection Regulation (GDPR), Digital Operational Resilience Act (DORA), Network and Information Security (NIS2) Directive. ESRS required KPIs: No specific ESRS KPIs, but relevant to S3 (communities) due to data breach impacts. KPIs would focus on data breaches, cybersecurity incidents, etc."
+        }, {
+          id: 3,
+          name: "Financial Inclusion",
+          financial: 0.7,
+          impact: 0.85,
+          size: 26,
+          risk: "increasing",
+          info: "Access to financial services for underserved communities. CRA applicable in the US.",
+          regulation: "CRA applicable in the US, EU Strategy for Retail Payments, European Accessibility Act (2019/882). ESRS required KPIs: S4-1: Number of clients in underserved communities, S4-2: Loan approval rates across different demographics, S4-3: Accessibility of financial products and services"
+        }, {
+          id: 4,
+          name: "Business Ethics",
+          financial: 0.9,
+          impact: 0.7,
+          size: 28,
+          risk: "high",
+          info: "Financial integrity, fraud prevention. EU AML Directive, US Bank Secrecy Act apply.",
+          regulation: "EU AML Directive, US Bank Secrecy Act, EU Anti-Money Laundering Directives (AMLD), Market Abuse Regulation (MAR). ESRS required KPIs: G1-1: Number of fraud or financial misconduct incidents, G1-2: Compliance with AML and KYC regulations"
+        }, {
+          id: 5,
+          name: "Governance",
+          financial: 0.85,
+          impact: 0.65,
+          size: 27,
+          risk: "medium",
+          info: "Board structure and remuneration policies. CSRD G2, Corporate Governance Codes apply.",
+          regulation: "CSRD G2, Corporate Governance Codes, Shareholder Rights Directive II (2017/828), EU Sustainable Corporate Governance Initiative. ESRS required KPIs: G2-1: Board diversity (gender, skills, etc.), G2-2: Executive compensation alignment with sustainability performance"
+        }],
+        manufacturing: [{
+          id: 1,
+          name: "Emissions",
+          financial: 0.85,
+          impact: 0.9,
+          size: 28,
+          risk: "high",
+          info: "Air, water, and waste emissions. EU Industrial Emissions Directive applies.",
+          regulation: "ESRS E1 and E2 standards, EU Industrial Emissions Directive (2010/75/EU), EU Emissions Trading System (EU ETS). ESRS required KPIs: E1-5: GHG emissions (Scope 1, 2), E2-1: Air pollutants (NOx, SOx, PM), E2-2: Waste generation and disposal"
+        }, {
+          id: 2,
+          name: "Materials",
+          financial: 0.75,
+          impact: 0.8,
+          size: 26,
+          risk: "medium",
+          info: "Raw material sourcing, waste management, circularity. EU Circular Economy Action Plan relevant.",
+          regulation: "EU Circular Economy Action Plan, Waste Framework Directive (2008/98/EC). ESRS required KPIs: E5-1: Material use intensity (per unit of output), E5-2: Recycled input materials used, E5-3: Waste recycled and reused"
+        }, {
+          id: 3,
+          name: "Labor Practices",
+          financial: 0.8,
+          impact: 0.7,
+          size: 25,
+          risk: "medium",
+          info: "Working conditions, employee relations, diversity. ILO Standards, CSRD S1, S2 apply.",
+          regulation: "ILO Standards, CSRD S1, S2, EU Occupational Safety and Health (OSH) Framework Directive (89/391/EEC). ESRS required KPIs: S1-1: Occupational health and safety incident rates, S1-2: Employee turnover and retention, S1-3: Diversity and inclusion metrics (gender, ethnicity, etc.)"
+        }, {
+          id: 4,
+          name: "Product Safety",
+          financial: 0.9,
+          impact: 0.85,
+          size: 29,
+          risk: "high",
+          info: "Product quality, safety standards, recalls. EU Product Safety Regulation applies.",
+          regulation: "EU Product Safety Regulation, EU General Product Safety Regulation (GPSR), Product Liability Directive (85/374/EEC). ESRS required KPIs: S4-4: Product recalls and safety incidents, S4-5: Customer satisfaction with product safety"
+        }, {
+          id: 5,
+          name: "Supply Chain",
+          financial: 0.7,
+          impact: 0.8,
+          size: 26,
+          risk: "increasing",
+          info: "Social and environmental responsibility in the supply chain. EU Corporate Sustainability Due Diligence applies.",
+          regulation: "EU Corporate Sustainability Due Diligence. ESRS required KPIs: S2-1: Supplier compliance with social and environmental standards, S2-2: Human rights due diligence findings"
+        }],
+        technology: [{
+          id: 1,
+          name: "Data Privacy",
+          financial: 0.95,
+          impact: 0.85,
+          size: 30,
+          risk: "high",
+          info: "Data protection, privacy policies, user consent. EU GDPR, ePrivacy Regulation apply.",
+          regulation: "EU GDPR, ePrivacy Regulation, CCPA, CPRA, EU General Data Protection Regulation (GDPR), ePrivacy Directive, proposed ePrivacy Regulation. ESRS required KPIs: No specific ESRS KPIs, but relevant to S3 (communities) due to data subject impacts. KPIs would focus on data protection measures, privacy breaches, etc."
+        }, {
+          id: 2,
+          name: "Energy Efficiency",
+          financial: 0.75,
+          impact: 0.8,
+          size: 26,
+          risk: "medium",
+          info: "Energy consumption in data centers, use of renewable energy. EU Energy Efficiency Directive applies.",
+          regulation: "CSRD E2, EU Energy Efficiency Directive, Energy Efficiency Directive (2012/27/EU), EU Code of Conduct for Energy Efficiency in Data Centres, ESRS E2 Pollution. ESRS required KPIs: E1-5: Energy consumption in data centers, E2-3: Use of renewable energy in data centers"
+        }, {
+          id: 3,
+          name: "Talent Management",
+          financial: 0.8,
+          impact: 0.7,
+          size: 25,
+          risk: "medium",
+          info: "Employee diversity, skills development, retention. EU Pay Transparency Directive applies.",
+          regulation: "EU Pay Transparency Directive, European Pillar of Social Rights. ESRS required KPIs: S1-1: Employee diversity and inclusion metrics, S1-2: Gender pay gap"
+        }, {
+          id: 4,
+          name: "Digital Ethics",
+          financial: 0.7,
+          impact: 0.8,
+          size: 26,
+          risk: "increasing",
+          info: "AI ethics, responsible innovation, algorithmic bias. EU AI Act applies.",
+          regulation: "EU AI Act, Digital Services Act, EU Ethics Guidelines for Trustworthy AI. ESRS required KPIs: G1-3: AI fairness and bias assessments, G1-4: Responsible AI development and deployment practices"
+        }, {
+          id: 5,
+          name: "Innovation",
+          financial: 0.85,
+          impact: 0.65,
+          size: 27,
+          risk: "medium",
+          info: "Investment in R&D, new technologies, and sustainable solutions. EU Digital Strategy applies.",
+          regulation: "EU Digital Strategy, European Digital Strategy, EU Digital Decade policy program. ESRS required KPIs: G2-3: R&D investment in sustainable technologies"
+        }],
+        healthcare: [{
+          id: 1,
+          name: "Access to Healthcare",
+          financial: 0.7,
+          impact: 0.9,
+          size: 26,
+          risk: "increasing",
+          info: "Affordability and availability of healthcare products and services. EU Pharmaceutical Strategy applies.",
+          regulation: "EU Pharmaceutical Strategy, European Pillar of Social Rights. ESRS required KPIs: S4-1: Availability and affordability of healthcare products/services"
+        }, {
+          id: 2,
+          name: "Product Safety",
+          financial: 0.95,
+          impact: 0.85,
+          size: 30,
+          risk: "high",
+          info: "Safety and efficacy of medical products and devices. EU Medical Device Regulation, FDA requirements apply.",
+          regulation: "EU Medical Device Regulation, FDA requirements, EU Medical Devices Regulation (2017/745), In Vitro Diagnostic Medical Devices Regulation (2017/746). ESRS required KPIs: S4-4: Adverse events and product recalls, S4-5: Patient safety incident rates"
+        }, {
+          id: 3,
+          name: "Data Security",
+          financial: 0.9,
+          impact: 0.8,
+          size: 28,
+          risk: "high",
+          info: "Protection of patient health information. GDPR, HIPAA apply.",
+          regulation: "GDPR, HIPAA, EU Health Data Space, GDPR requirements for health data, European Health Data Space proposal. ESRS required KPIs: No specific ESRS KPIs, but relevant to S3 (communities) due to patient data sensitivity. KPIs would focus on data breaches, privacy compliance, etc."
+        }, {
+          id: 4,
+          name: "Ethical Marketing",
+          financial: 0.8,
+          impact: 0.7,
+          size: 25,
+          risk: "medium",
+          info: "Responsible marketing practices for healthcare products and services. EFPIA/PhRMA Codes apply.",
+          regulation: "EFPIA/PhRMA Codes, European Federation of Pharmaceutical Industries and Associations (EFPIA) Code. ESRS required KPIs: S3-1: Compliance with marketing ethics codes, S3-2: Patient complaints related to marketing practices"
+        }, {
+          id: 5,
+          name: "Clinical Trials",
+          financial: 0.75,
+          impact: 0.8,
+          size: 26,
+          risk: "medium",
+          info: "Ethical conduct and transparency in clinical trials. EU Clinical Trials Regulation applies.",
+          regulation: "EU Clinical Trials Regulation, ICH GCP, EU Clinical Trials Regulation (536/2014), International Council for Harmonisation (ICH) Good Clinical Practice guidelines. ESRS required KPIs: S4-6: Clinical trial participant safety and well-being, S4-7: Compliance with clinical trial regulations and ethics"
+        }],
+        retail: [{
+          id: 1,
+          name: "Supply Chain",
+          financial: 0.75,
+          impact: 0.8,
+          size: 26,
+          risk: "increasing",
+          info: "Social and environmental responsibility in the supply chain. EU Corporate Sustainability Due Diligence applies.",
+          regulation: "EU Corporate Sustainability Due Diligence, EU Corporate Sustainability Due Diligence Directive proposal, EU Deforestation Regulation. ESRS required KPIs: S2-1: Supplier compliance with labor and human rights standards, S2-2: Traceability of supply chain (e.g., for deforestation-free products)"
+        }, {
+          id: 2,
+          name: "Product Quality",
+          financial: 0.85,
+          impact: 0.75,
+          size: 27,
+          risk: "medium",
+          info: "Product quality, safety, and labeling. EU Product Safety Regulation applies.",
+          regulation: "EU Product Safety Regulation, EU General Product Safety Regulation, Product Liability Directive (85/374/EEC). ESRS required KPIs: S4-4: Product recalls and safety incidents, S4-5: Customer satisfaction with product quality"
+        }, {
+          id: 3,
+          name: "Labor Practices",
+          financial: 0.8,
+          impact: 0.7,
+          size: 25,
+          risk: "medium",
+          info: "Fair wages, working conditions, and employee development. EU CSRD S1 applies.",
+          regulation: "EU CSRD S1, ILO Standards, EU Directive on transparent and predictable working conditions, Working Time Directive. ESRS required KPIs: S1-1: Employee wages and working hours, S1-2: Employee training and development"
+        }, {
+          id: 4,
+          name: "Packaging",
+          financial: 0.7,
+          impact: 0.8,
+          size: 26,
+          risk: "increasing",
+          info: "Sustainable packaging, waste reduction, and recycling. EU Packaging Directive applies.",
+          regulation: "EU Packaging Directive, Plastics Strategy, EU Packaging and Packaging Waste Directive, Single-Use Plastics Directive (2019/904). ESRS required KPIs: E5-1: Packaging waste generated, E5-2: Recycled content in packaging, E5-3: Use of reusable or refillable packaging"
+        }, {
+          id: 5,
+          name: "Energy Consumption",
+          financial: 0.65,
+          impact: 0.7,
+          size: 24,
+          risk: "medium",
+          info: "Energy efficiency in stores and operations. EU Energy Efficiency Directive applies.",
+          regulation: "EU Energy Efficiency Directive, CSRD E2, Energy Efficiency Directive (2012/27/EU), Energy Performance of Buildings Directive (2010/31/EU), ESRS E2 Pollution. ESRS required KPIs: E1-5: Energy consumption per square meter of retail space, E1-5: Renewable energy use in retail operations"
+        }],
+        food: [{
+          id: 1,
+          name: "Food Safety",
+          financial: 0.9,
+          impact: 0.85,
+          size: 29,
+          risk: "high",
+          info: "Food safety standards, hygiene, and traceability. EU Food Safety Regulation applies.",
+          regulation: "EU Food Safety Regulation, HACCP protocols, EU General Food Law Regulation (178/2002), Food Hygiene Regulations, HACCP requirements. ESRS required KPIs: S4-4: Food safety incidents and product recalls, S4-5: Compliance with food safety standards and certifications"
+        }, {
+          id: 2,
+          name: "Water Management",
+          financial: 0.7,
+          impact: 0.8,
+          size: 26,
+          risk: "medium",
+          info: "Water use in agriculture and food processing. EU Water Framework Directive applies.",
+          regulation: "CSRD E3, EU Water Framework Directive, EU Water Framework Directive (2000/60/EC), Nitrates Directive (91/676/EEC). ESRS required KPIs: E31: Total water withdrawal, E3-2: Water consumption (withdrawal minus discharge)"
+        }, {
+          id: 3,
+          name: "Packaging",
+          financial: 0.65,
+          impact: 0.75,
+          size: 25,
+          risk: "increasing",
+          info: "Sustainable packaging and waste reduction. EU Packaging Directive, Single-Use Plastics Ban apply.",
+          regulation: "EU Packaging Directive, Single-Use Plastics Ban, EU Packaging and Packaging Waste Directive, Single-Use Plastics Directive (2019/904). ESRS required KPIs: E5-1: Packaging waste generated, E5-2: Recycled content in food packaging"
+        }, {
+          id: 4,
+          name: "Sourcing",
+          financial: 0.7,
+          impact: 0.8,
+          size: 26,
+          risk: "increasing",
+          info: "Sustainable and ethical sourcing of ingredients. EU Deforestation Regulation applies.",
+          regulation: "EU Deforestation Regulation, Farm to Fork Strategy, Organic Farming Regulation (2018/848). ESRS required KPIs: S2-1: Sustainable sourcing of agricultural raw materials, S2-2: Compliance with deforestation-free supply chains"
+        }, {
+          id: 5,
+          name: "Nutrition",
+          financial: 0.75,
+          impact: 0.7,
+          size: 25,
+          risk: "medium",
+          info: "Nutritional value and labeling of food products. EU Food Information Regulation applies.",
+          regulation: "EU Food Information Regulation, Nutri-Score, EU Food Information to Consumers Regulation (1169/2011), EU Code of Conduct for Responsible Food Business and Marketing Practices. ESRS required KPIs: S4-8: Nutritional value of food products, S4-9: Compliance with food labeling regulations"
+        }],
+        transportation: [{
+          id: 1,
+          name: "GHG Emissions",
+          financial: 0.8,
+          impact: 0.9,
+          size: 28,
+          risk: "high",
+          info: "Greenhouse gas emissions from transportation activities. EU CO2 Standards for Vehicles apply.",
+          regulation: "EU CO2 Standards for Vehicles, EU CO2 emission performance standards for cars and vans, EU Regulation on monitoring CO2 from heavy-duty vehicles. ESRS required KPIs: E1-5: GHG emissions from transportation fleet, E1-6: Emissions per ton-kilometer or passenger-kilometer"
+        }, {
+          id: 2,
+          name: "Fuel Efficiency",
+          financial: 0.75,
+          impact: 0.85,
+          size: 27,
+          risk: "medium",
+          info: "Fuel consumption and efficiency of vehicles. EU Alternative Fuels Infrastructure Directive applies.",
+          regulation: "EU Alternative Fuels Infrastructure Directive, Alternative Fuels Infrastructure Regulation (AFIR), Renewable Energy Directive II (RED II). ESRS required KPIs: E1-5: Fuel consumption per vehicle or unit of transport, E1-5: Use of alternative fuels (e.g., biofuels, electricity)"
+        }, {
+          id: 3,
+          name: "Safety",
+          financial: 0.9,
+          impact: 0.8,
+          size: 28,
+          risk: "high",
+          info: "Safety of passengers, employees, and the public. EU Road Safety Policy Framework applies.",
+          regulation: "EU Road Safety Policy Framework, EU Road Safety Policy Framework 2021-2030, General Safety Regulation (2019/2144). ESRS required KPIs: S4-10: Accident rates and safety incidents"
+        }, {
+          id: 4,
+          name: "Labor Relations",
+          financial: 0.7,
+          impact: 0.7,
+          size: 24,
+          risk: "medium",
+          info: "Working conditions and employee relations. EU Mobility Package applies.",
+          regulation: "EU Mobility Package, CSRD S1, EU Mobility Package, Directive on Transparent and Predictable Working Conditions. ESRS required KPIs: S1-1: Driver working hours and rest periods"
+        }, {
+          id: 5,
+          name: "Air Quality",
+          financial: 0.65,
+          impact: 0.75,
+          size: 25,
+          risk: "increasing",
+          info: "Air pollution from transportation activities. EU Air Quality Directives apply.",
+          regulation: "EU Air Quality Directives. ESRS required KPIs: E2-1: NOx, SOx, and particulate matter emissions"
+        }],
+        packaging: [{
+          id: 1,
+          name: "Circular Economy",
+          financial: 0.7,
+          impact: 0.85,
+          size: 26,
+          risk: "increasing",
+          info: "Packaging waste, recycling, and reuse. EU Circular Economy Action Plan applies.",
+          regulation: "EU Circular Economy Action Plan, EU Packaging and Packaging Waste Directive. ESRS required KPIs: E5-1: Packaging waste generation and recycling rates, E5-2: Use of reusable or refillable packaging"
+        }, {
+          id: 2,
+          name: "Plastics Usage",
+          financial: 0.65,
+          impact: 0.8,
+          size: 25,
+          risk: "increasing",
+          info: "Reduction of single-use plastics and microplastics. EU Plastics Strategy applies.",
+          regulation: "EU Plastics Strategy, Single-Use Plastics Directive (2019/904). ESRS required KPIs: E5-3: Reduction in single-use plastic packaging"
+        }, {
+          id: 3,
+          name: "Materials Sourcing",
+          financial: 0.6,
+          impact: 0.7,
+          size: 23,
+          risk: "medium",
+          info: "Sustainable sourcing of packaging materials. EU Timber Regulation applies.",
+          regulation: "EU Timber Regulation. ESRS required KPIs: E5-4: Sustainable sourcing of packaging raw materials (e.g., paper, aluminum)"
+        }, {
+          id: 4,
+          name: "Carbon Footprint",
+          financial: 0.75,
+          impact: 0.75,
+          size: 26,
+          risk: "medium",
+          info: "Greenhouse gas emissions from packaging production and transport. No specific EU regulation.",
+          regulation: "No specific EU regulation. ESRS required KPIs: E1-5: GHG emissions from packaging production and transport"
+        }, {
+          id: 5,
+          name: "Chemical Safety",
+          financial: 0.8,
+          impact: 0.7,
+          size: 25,
+          risk: "medium",
+          info: "Use of hazardous chemicals in packaging. EU REACH Regulation applies.",
+          regulation: "EU REACH Regulation. ESRS required KPIs: E2-4: Use of hazardous chemicals in packaging"
+        }],
+        aerospace: [{
+          id: 1,
+          name: "Climate Impact",
+          financial: 0.85,
+          impact: 0.9,
+          size: 29,
+          risk: "high",
+          info: "Greenhouse gas emissions and climate change impacts. EU ETS applies.",
+          regulation: "EU ETS. ESRS required KPIs: E1-5: GHG emissions from aircraft operations, E1-6: Use of sustainable aviation fuels (SAF)"
+        }, {
+          id: 2,
+          name: "Supply Chain",
+          financial: 0.7,
+          impact: 0.75,
+          size: 25,
+          risk: "increasing",
+          info: "Social and environmental responsibility in the supply chain. EU Conflict Minerals Regulation applies.",
+          regulation: "EU Conflict Minerals Regulation. ESRS required KPIs: S2-1: Responsible sourcing of critical minerals, S2-2: Human rights due diligence in the supply chain"
+        }, {
+          id: 3,
+          name: "Innovation",
+          financial: 0.8,
+          impact: 0.65,
+          size: 26,
+          risk: "medium",
+          info: "Investment in R&D and sustainable aviation technologies. EU Horizon Europe program applies.",
+          regulation: "EU Horizon Europe program. ESRS required KPIs: G2-3: R&D investment in sustainable aviation technologies"
+        }, {
+          id: 4,
+          name: "Safety & Quality",
+          financial: 0.95,
+          impact: 0.85,
+          size: 30,
+          risk: "high",
+          info: "Safety and quality of aircraft and operations. EU Aviation Safety Agency (EASA) regulations apply.",
+          regulation: "EU Aviation Safety Agency (EASA) regulations. ESRS required KPIs: S4-10: Aviation safety incident rates"
+        }, {
+          id: 5,
+          name: "Noise Pollution",
+          financial: 0.6,
+          impact: 0.7,
+          size: 23,
+          risk: "medium",
+          info: "Noise pollution from aircraft operations. EU Noise Directive applies.",
+          regulation: "EU Noise Directive. ESRS required KPIs: E2-5: Noise levels around airports and flight paths"
+        }],
+        automotive: [{
+          id: 1,
+          name: "Electrification",
+          financial: 0.8,
+          impact: 0.85,
+          size: 28,
+          risk: "high",
+          info: "Transition to electric vehicles and charging infrastructure. EU CO2 Standards for Vehicles apply.",
+          regulation: "EU CO2 Standards for Vehicles. ESRS required KPIs: E1-11: Electric vehicle (EV) sales share, E1-12: EV charging infrastructure availability"
+        }, {
+          id: 2,
+          name: "Emissions",
+          financial: 0.85,
+          impact: 0.9,
+          size: 29,
+          risk: "high",
+          info: "Greenhouse gas emissions and air pollution. EU Emissions Trading System (EU ETS) applies.",
+          regulation: "EU Emissions Trading System (EU ETS). ESRS required KPIs: E2-1: Tailpipe emissions (NOx, PM), E1-5: Lifecycle GHG emissions of vehicles"
+        }, {
+          id: 3,
+          name: "Materials",
+          financial: 0.7,
+          impact: 0.75,
+          size: 25,
+          risk: "medium",
+          info: "Sustainable materials and resource efficiency. EU End-of-Life Vehicles Directive applies.",
+          regulation: "EU End-of-Life Vehicles Directive. ESRS required KPIs: E5-1: Recycled content in vehicles, E5-5: Battery recycling and reuse"
+        }, {
+          id: 4,
+          name: "Battery Supply Chain",
+          financial: 0.65,
+          impact: 0.8,
+          size: 26,
+          risk: "increasing",
+          info: "Social and environmental responsibility in the battery supply chain. EU Battery Regulation applies.",
+          regulation: "EU Battery Regulation. ESRS required KPIs: S2-1: Responsible sourcing of battery raw materials (e.g., cobalt, lithium)"
+        }, {
+          id: 5,
+          name: "Vehicle Safety",
+          financial: 0.95,
+          impact: 0.85,
+          size: 30,
+          risk: "high",
+          info: "Vehicle safety standards and crash test performance. EU General Safety Regulation applies.",
+          regulation: "EU General Safety Regulation. ESRS required KPIs: S4-10: Vehicle safety ratings and crash test performance"
+        }],
+        chemicals: [{
+          id: 1,
+          name: "Chemical Safety",
+          financial: 0.9,
+          impact: 0.9,
+          size: 30,
+          risk: "high",
+          info: "Safe handling and use of chemicals. EU REACH Regulation applies.",
+          regulation: "EU REACH Regulation. ESRS required KPIs: E2-4: Use and release of hazardous chemicals"
+        }, {
+          id: 2,
+          name: "Emissions",
+          financial: 0.8,
+          impact: 0.85,
+          size: 28,
+          risk: "high",
+          info: "Air, water, and soil pollution. EU Industrial Emissions Directive applies.",
+          regulation: "EU Industrial Emissions Directive. ESRS required KPIs: E2-1: Air, water, and soil pollution from chemical processes"
+        }, {
+          id: 3,
+          name: "Water Management",
+          financial: 0.7,
+          impact: 0.75,
+          size: 25,
+          risk: "medium",
+          info: "Water consumption and wastewater treatment. EU Water Framework Directive applies.",
+          regulation: "EU Water Framework Directive. ESRS required KPIs: E3-1: Water consumption and wastewater discharge"
+        }, {
+          id: 4,
+          name: "Circular Economy",
+          financial: 0.65,
+          impact: 0.7,
+          size: 24,
+          risk: "medium",
+          info: "Resource efficiency and waste reduction. EU Circular Economy Action Plan applies.",
+          regulation: "EU Circular Economy Action Plan. ESRS required KPIs: E5-1: Resource efficiency and waste reduction"
+        }, {
+          id: 5,
+          name: "Process Safety",
+          financial: 0.95,
+          impact: 0.8,
+          size: 29,
+          risk: "high",
+          info: "Safety of chemical processes and operations. EU Seveso III Directive applies.",
+          regulation: "EU Seveso III Directive. ESRS required KPIs: S1-1: Process safety incident rates"
+        }],
+        construction: [{
+          id: 1,
+          name: "Carbon Footprint",
+          financial: 0.75,
+          impact: 0.85,
+          size: 27,
+          risk: "high",
+          info: "Embodied carbon and lifecycle emissions of buildings. EU Energy Performance of Buildings Directive applies.",
+          regulation: "EU Energy Performance of Buildings Directive. ESRS required KPIs: E1-5: Embodied carbon in building materials, E1-5: Lifecycle GHG emissions of buildings"
+        }, {
+          id: 2,
+          name: "Energy Efficiency",
+          financial: 0.8,
+          impact: 0.8,
+          size: 27,
+          risk: "medium",
+          info: "Energy performance of buildings and building materials. EU Energy Efficiency Directive applies.",
+          regulation: "EU Energy Efficiency Directive. ESRS required KPIs: E1-5: Energy performance of buildings"
+        }, {
+          id: 3,
+          name: "Materials",
+          financial: 0.7,
+          impact: 0.7,
+          size: 24,
+          risk: "medium",
+          info: "Sustainable and resource-efficient building materials. EU Construction Products Regulation applies.",
+          regulation: "EU Construction Products Regulation. ESRS required KPIs: E5-1: Use of sustainable building materials"
+        }, {
+          id: 4,
+          name: "Worker Safety",
+          financial: 0.9,
+          impact: 0.75,
+          size: 28,
+          risk: "high",
+          info: "Occupational health and safety on construction sites. EU Occupational Safety and Health (OSH) Framework Directive applies.",
+          regulation: "EU Occupational Safety and Health (OSH) Framework Directive. ESRS required KPIs: S1-1: Occupational health and safety incident rates"
+        }, {
+          id: 5,
+          name: "Waste Management",
+          financial: 0.65,
+          impact: 0.7,
+          size: 24,
+          risk: "medium",
+          info: "Waste reduction and recycling in construction. EU Waste Framework Directive applies.",
+          regulation: "EU Waste Framework Directive. ESRS required KPIs: E5-1: Construction and demolition waste recycling rates"
+        }]
+      },
+      sasb: {
+        energy: [{
+            id: 1,
+            name: "GHG Emissions",
+            financial: 0.9,
+            impact: 0.85,
+            size: 30,
+            risk: "high",
+            info: "Direct and indirect emissions. SEC Climate Rule proposed, California Climate requirements.",
+            regulation: "SEC Climate-Related Disclosures Proposal, California's Climate Corporate Accountability Act, SASB EM-EP-110a.1, EM-EP-110a.2, EM-EP-110a.3"
+          },
+          {
+            id: 2,
+            name: "Air Quality",
+            financial: 0.7,
+            impact: 0.9,
+            size: 28,
+            risk: "medium",
+            info: "NOx, SOx, and particulates. Clean Air Act, EPA regulations.",
+            regulation: "EPA New Source Performance Standards, National Ambient Air Quality Standards, SASB EM-EP-120a.1"
+          },
+          {
+            id: 3,
+            name: "Water Management",
+            financial: 0.75,
+            impact: 0.8,
+            size: 26,
+            risk: "increasing",
+            info: "Freshwater consumption. Clean Water Act and state regulations.",
+            regulation: "Clean Water Act NPDES permits, state water withdrawal requirements, SASB EM-EP-140a.1, EM-EP-140a.2"
+          },
+          {
+            id: 4,
+            name: "Community Relations",
+            financial: 0.6,
+            impact: 0.8,
+            size: 27,
+            risk: "medium",
+            info: "Social license to operate. Indigenous consultation, local permitting.",
+            regulation: "BLM and NEPA requirements for consultation, state permitting requirements, SASB EM-EP-210b.1, EM-EP-210b.2"
+          },
+          {
+            id: 5,
+            name: "Safety & Risk",
+            financial: 0.85,
+            impact: 0.7,
+            size: 25,
+            risk: "high",
+            info: "Process safety, emergency preparedness. OSHA PSM, EPA RMP, BSEE regulations.",
+            regulation: "OSHA Process Safety Management Standard, EPA Risk Management Plan Rule, BSEE SEMS Rule, SASB EM-EP-320a.1, EM-EP-540a.1"
+          }
+        ],
+        finance: [{
+            id: 1,
+            name: "Data Security",
+            financial: 0.95,
+            impact: 0.7,
+            size: 30,
+            risk: "high",
+            info: "Protection of financial data. SEC Cybersecurity rules, GLBA applicable.",
+            regulation: "SEC cybersecurity disclosure rules, Gramm-Leach-Bliley Act Safeguards Rule, state data breach notification laws, SASB FN-CB-230a.1, FN-CB-230a.2"
+          },
+          {
+            id: 2,
+            name: "Financial Inclusion",
+            financial: 0.7,
+            impact: 0.85,
+            size: 27,
+            risk: "medium",
+            info: "Access to financial products. Community Reinvestment Act.",
+            regulation: "Community Reinvestment Act, proposals for CRA modernization, SASB FN-CB-240a.1, FN-CB-240a.2"
+          },
+          {
+            id: 3,
+            name: "ESG Integration",
+            financial: 0.8,
+            impact: 0.9,
+            size: 28,
+            risk: "increasing",
+            info: "ESG factors in lending. SEC disclosures, DOL ESG rule.",
+            regulation: "DOL Final Rule on ESG Considerations in ERISA plans, SEC ESG disclosure requirements for funds, SASB FN-CB-410a.1, FN-CB-410a.2"
+          },
+          {
+            id: 4,
+            name: "Business Ethics",
+            financial: 0.9,
+            impact: 0.65,
+            size: 29,
+            risk: "high",
+            info: "Anti-corruption, fraud prevention. AML laws, FCPA, Bank Secrecy Act.",
+            regulation: "Bank Secrecy Act, Anti-Money Laundering Act, Foreign Corrupt Practices Act, SASB FN-CB-510a.1, FN-CB-510a.2"
+          },
+          {
+            id: 5,
+            name: "Systemic Risk",
+            financial: 0.85,
+            impact: 0.6,
+            size: 26,
+            risk: "high",
+            info: "Financial system stability. Dodd-Frank Act, Basel III.",
+            regulation: "Dodd-Frank Act stress testing requirements, Basel III capital and liquidity requirements, SASB FN-CB-550a.1, FN-CB-550a.2"
+          }
+        ],
+        manufacturing: [{
+            id: 1,
+            name: "Energy Management",
+            financial: 0.8,
+            impact: 0.75,
+            size: 27,
+            risk: "medium",
+            info: "Energy consumption, efficiency. DOE efficiency standards.",
+            regulation: "DOE energy efficiency standards, ISO 50001 certification, state energy benchmarking, SASB RT-IG-130a.1"
+          },
+          {
+            id: 2,
+            name: "Waste Management",
+            financial: 0.7,
+            impact: 0.85,
+            size: 26,
+            risk: "medium",
+            info: "Hazardous waste, recycling. RCRA, EPA waste management.",
+            regulation: "Resource Conservation and Recovery Act (RCRA), EPA hazardous waste generator requirements, SASB RT-IG-150a.1, RT-IG-150a.2"
+          },
+          {
+            id: 3,
+            name: "Product Safety",
+            financial: 0.9,
+            impact: 0.8,
+            size: 30,
+            risk: "high",
+            info: "Product quality and safety. CPSC requirements, safety standards.",
+            regulation: "Consumer Product Safety Improvement Act (CPSIA), industry-specific safety standards, SASB RT-IG-250a.1, RT-IG-250a.2"
+          },
+          {
+            id: 4,
+            name: "Labor Practices",
+            financial: 0.75,
+            impact: 0.75,
+            size: 25,
+            risk: "medium",
+            info: "Employee health & safety. OSHA regulations, labor laws, EEO.",
+            regulation: "OSHA workplace safety standards, Fair Labor Standards Act, EEO/anti-discrimination laws, SASB RT-IG-320a.1"
+          },
+          {
+            id: 5,
+            name: "Materials Sourcing",
+            financial: 0.8,
+            impact: 0.7,
+            size: 28,
+            risk: "increasing",
+            info: "Supply chain sustainability. Conflict minerals rules.",
+            regulation: "Dodd-Frank Act Section 1502 on conflict minerals, California Transparency in Supply Chains Act, SASB RT-IG-440a.1, RT-IG-440b.1"
+          }
+        ],
+        technology: [{
+            id: 1,
+            name: "Hardware Security",
+            financial: 0.9,
+            impact: 0.75,
+            size: 29,
+            risk: "high",
+            info: "Product security features. FTC safeguards, NIST standards.",
+            regulation: "FTC Security by Design principles, NIST security frameworks, state IoT security laws, SASB TC-HW-230a.1"
+          },
+          {
+            id: 2,
+            name: "Data Privacy",
+            financial: 0.95,
+            impact: 0.8,
+            size: 30,
+            risk: "high",
+            info: "User data protection. CCPA, CPRA, state privacy laws.",
+            regulation: "California Consumer Privacy Act (CCPA), other state privacy laws (VCDPA, CPA, CTDPA), SASB TC-SI-220a.1, TC-SI-220a.2"
+          },
+          {
+            id: 3,
+            name: "Employee Engagement",
+            financial: 0.85,
+            impact: 0.75,
+            size: 27,
+            risk: "medium",
+            info: "Talent recruitment, diversity. EEO-1 reporting, pay transparency laws.",
+            regulation: "EEO-1 Component 1 reporting, state pay transparency laws, SASB TC-SI-330a.1, TC-SI-330a.2, TC-SI-330a.3"
+          },
+          {
+            id: 4,
+            name: "IP Protection",
+            financial: 0.9,
+            impact: 0.6,
+            size: 28,
+            risk: "medium",
+            info: "Intellectual property protection. USPTO requirements, FTC oversight.",
+            regulation: "Patent enforcement actions, intellectual property protection, FTC fair competition oversight, SASB TC-SI-520a.1"
+          },
+          {
+            id: 5,
+            name: "Energy Management",
+            financial: 0.7,
+            impact: 0.85,
+            size: 26,
+            risk: "increasing",
+            info: "Data center energy consumption. EPA Energy Star, state reporting.",
+            regulation: "EPA ENERGY STAR for Data Centers, state energy benchmarking and disclosure laws, SASB TC-SI-130a.1, TC-SI-130a.2, TC-SI-130a.3"
+          }
+        ],
+        healthcare: [{
+            id: 1,
+            name: "Drug Safety",
+            financial: 0.95,
+            impact: 0.9,
+            size: 30,
+            risk: "high",
+            info: "Product safety and monitoring. FDA requirements, pharmacovigilance.",
+            regulation: "FDA post-marketing surveillance requirements, FDA Adverse Event Reporting System (FAERS), SASB HC-BP-250a.1, HC-BP-250a.2, HC-BP-250a.3"
+          },
+          {
+            id: 2,
+            name: "Access & Affordability",
+            financial: 0.8,
+            impact: 0.9,
+            size: 28,
+            risk: "high",
+            info: "Drug pricing and patient access. Inflation Reduction Act, state pricing laws.",
+            regulation: "IRA Medicare drug price negotiation provisions, state drug price transparency laws, SASB HC-BP-240a.1, HC-BP-240a.2"
+          },
+          {
+            id: 3,
+            name: "Patient Privacy",
+            financial: 0.9,
+            impact: 0.85,
+            size: 29,
+            risk: "high",
+            info: "Protection of patient data. HIPAA, state health privacy laws.",
+            regulation: "HIPAA Privacy and Security Rules, state medical privacy laws, OCR enforcement, SASB HC-BP-230a.1"
+          },
+          {
+            id: 4,
+            name: "Counterfeit Drugs",
+            financial: 0.85,
+            impact: 0.8,
+            size: 27,
+            risk: "medium",
+            info: "Supply chain integrity. DSCSA requirements, FDA track-and-trace.",
+            regulation: "Drug Supply Chain Security Act (DSCSA) implementation requirements, FDA serialization requirements, SASB HC-BP-260a.1"
+          },
+          {
+            id: 5,
+            name: "Ethical Marketing",
+            financial: 0.8,
+            impact: 0.75,
+            size: 26,
+            risk: "medium",
+            info: "Promotional practices. PhRMA Code, OIG guidance, False Claims Act.",
+            regulation: "PhRMA Code on Interactions with Healthcare Professionals, OIG compliance guidance, False Claims Act enforcement, SASB HC-BP-270a.1, HC-BP-270a.2"
+          }
+        ],
+        retail: [{
+            id: 1,
+            name: "Data Security",
+            financial: 0.9,
+            impact: 0.75,
+            size: 29,
+            risk: "high",
+            info: "Customer data protection. PCI DSS requirements, state data breach laws.",
+            regulation: "PCI DSS compliance requirements, state data breach notification laws, SASB CG-MR-230a.1, CG-MR-230a.2"
+          },
+          {
+            id: 2,
+            name: "Labor Practices",
+            financial: 0.75,
+            impact: 0.8,
+            size: 27,
+            risk: "medium",
+            info: "Employee working conditions. DOL regulations, state labor laws.",
+            regulation: "Fair Labor Standards Act, state scheduling and labor laws, SASB CG-MR-310a.1, CG-MR-310a.2"
+          },
+          {
+            id: 3,
+            name: "Product Sourcing",
+            financial: 0.85,
+            impact: 0.85,
+            size: 30,
+            risk: "high",
+            info: "Supplier monitoring. Conflict minerals rules, forced labor prohibitions.",
+            regulation: "UFLPA forced labor import restrictions, California Transparency in Supply Chains Act, SASB CG-MR-410a.1, CG-MR-410a.2, CG-MR-410a.3"
+          },
+          {
+            id: 4,
+            name: "Product Quality",
+            financial: 0.9,
+            impact: 0.7,
+            size: 28,
+            risk: "medium",
+            info: "Product safety. CPSC requirements, product liability standards.",
+            regulation: "CPSC reporting requirements, product recalls, safety standards, SASB CG-MR-250a.1, CG-MR-250a.2"
+          },
+          {
+            id: 5,
+            name: "Energy Management",
+            financial: 0.7,
+            impact: 0.8,
+            size: 26,
+            risk: "medium",
+            info: "Store energy usage. Energy benchmarking laws, building efficiency standards.",
+            regulation: "State and local energy benchmarking ordinances, building energy efficiency standards, SASB CG-MR-130a.1"
+          }
+        ],
+        food: [{
+            id: 1,
+            name: "Food Safety",
+            financial: 0.95,
+            impact: 0.85,
+            size: 30,
+            risk: "high",
+            info: "Product safety, quality. FDA FSMA requirements, GFSI certification.",
+            regulation: "Food Safety Modernization Act (FSMA) rules, GFSI certification standards, SASB FB-PF-250a.1, FB-PF-250a.2, FB-PF-250a.3, FB-PF-250a.4"
+          },
+          {
+            id: 2,
+            name: "Health & Nutrition",
+            financial: 0.85,
+            impact: 0.8,
+            size: 28,
+            risk: "medium",
+            info: "Nutritional content and claims. FDA labeling requirements.",
+            regulation: "FDA Nutrition Facts labeling requirements, claims regulations, SASB FB-PF-260a.1, FB-PF-260a.2"
+          },
+          {
+            id: 3,
+            name: "Packaging Lifecycle",
+            financial: 0.7,
+            impact: 0.85,
+            size: 27,
+            risk: "increasing",
+            info: "Packaging materials. State extended producer responsibility laws.",
+            regulation: "State packaging EPR laws (CA, ME, OR, CO), plastic reduction targets, SASB FB-PF-410a.1, FB-PF-410a.2, FB-PF-410a.3, FB-PF-410a.4"
+          },
+          {
+            id: 4,
+            name: "Supply Chain",
+            financial: 0.8,
+            impact: 0.75,
+            size: 26,
+            risk: "high",
+            info: "Agricultural sourcing practices. FSMA supply chain provisions.",
+            regulation: "FSMA Foreign Supplier Verification Program, supply chain traceability requirements, SASB FB-PF-430a.1, FB-PF-430a.2"
+          },
+          {
+            id: 5,
+            name: "Ingredient Sourcing",
+            financial: 0.85,
+            impact: 0.8,
+            size: 29,
+            risk: "medium",
+            info: "Raw material sourcing. Organic standards, sustainable certifications.",
+            regulation: "USDA Organic standards, sustainable palm oil certifications, other ingredient certifications, SASB FB-PF-440a.1, FB-PF-440a.2"
+          }
+        ],
+        transportation: [{
+            id: 1,
+            name: "GHG Emissions",
+            financial: 0.85,
+            impact: 0.9,
+            size: 29,
+            risk: "high",
+            info: "Fleet emissions. EPA emissions standards, NHTSA CAFE standards.",
+            regulation: "EPA GHG emissions standards, SmartWay Transport Partnership, SASB TR-AF-110a.1, TR-AF-110a.2, TR-AF-110a.3"
+          },
+          {
+            id: 2,
+            name: "Fuel Economy",
+            financial: 0.9,
+            impact: 0.85,
+            size: 30,
+            risk: "high",
+            info: "Fuel efficiency metrics. CAFE standards, ZEV mandates.",
+            regulation: "NHTSA/EPA CAFE standards, California ZEV mandates, SASB TR-AU-410a.1, TR-AU-410a.2, TR-AU-410a.3"
+          },
+          {
+            id: 3,
+            name: "Materials Efficiency",
+            financial: 0.8,
+            impact: 0.7,
+            size: 27,
+            risk: "medium",
+            info: "Resource use in manufacturing. EPA waste regulations.",
+            regulation: "EPA waste regulations, end-of-life vehicle recycling, SASB TR-AU-440a.1, TR-AU-440b.1, TR-AU-440b.2, TR-AU-440b.3"
+          },
+          {
+            id: 4,
+            name: "Accident & Safety",
+            financial: 0.9,
+            impact: 0.75,
+            size: 28,
+            risk: "high",
+            info: "Passenger safety. NHTSA safety standards, crash test reporting.",
+            regulation: "NHTSA Federal Motor Vehicle Safety Standards, crash test requirements, SASB TR-AU-250a.1, TR-AU-250a.2, TR-AU-250a.3"
+          },
+          {
+            id: 5,
+            name: "Labor Practices",
+            financial: 0.75,
+            impact: 0.8,
+            size: 26,
+            risk: "medium",
+            info: "Working conditions for drivers. DOT hours of service, labor standards.",
+            regulation: "DOT Hours of Service regulations, driver qualification requirements, SASB TR-AF-310a.1, TR-AF-310a.2"
+          }
+        ],
+        packaging: [{
+            id: 1,
+            name: "Product Lifecycle",
+            financial: 0.85,
+            impact: 0.9,
+            size: 30,
+            risk: "high",
+            info: "End-of-life product management, recyclability, and extended producer responsibility.",
+            regulation: "State EPR programs (CA, ME, OR, CO), recycled content mandates, SASB RT-CP-410a.1, RT-CP-410a.2, RT-CP-410a.3"
+          },
+          {
+            id: 2,
+            name: "Sustainable Packaging",
+            financial: 0.9,
+            impact: 0.85,
+            size: 29,
+            risk: "high",
+            info: "Design for sustainability, material reduction, and recyclable/compostable alternatives.",
+            regulation: "State packaging bans on non-recyclable materials, plastic bag bans, recycled content laws, SASB RT-CP-410a.1"
+          },
+          {
+            id: 3,
+            name: "Raw Materials Sourcing",
+            financial: 0.8,
+            impact: 0.8,
+            size: 28,
+            risk: "increasing",
+            info: "Sustainable fiber sourcing, responsible procurement policies for paper and forestry products.",
+            regulation: "Lacey Act amendments for forest products, sustainable forestry certifications like FSC and SFI, SASB RT-CP-430a.1, RT-CP-430a.2"
+          },
+          {
+            id: 4,
+            name: "Energy Management",
+            financial: 0.75,
+            impact: 0.75,
+            size: 26,
+            risk: "medium",
+            info: "Energy consumption in manufacturing operations, renewable energy use, and efficiency projects.",
+            regulation: "EPA ENERGY STAR for plants, state energy efficiency standards, SASB RT-CP-130a.1"
+          },
+          {
+            id: 5,
+            name: "Product Safety",
+            financial: 0.85,
+            impact: 0.7,
+            size: 27,
+            risk: "medium",
+            info: "Food-contact materials safety, chemical migration, and compliance with food packaging standards.",
+            regulation: "FDA food contact regulations, PFAS restrictions in food packaging, SASB RT-CP-250a.1, RT-CP-250a.2"
+          }
+        ],
+        aerospace: [{
+            id: 1,
+            name: "Fuel Economy",
+            financial: 0.85,
+            impact: 0.9,
+            size: 30,
+            risk: "high",
+            info: "Aircraft fuel efficiency, emissions per passenger mile, and fleet fuel management.",
+            regulation: "ICAO CO2 emissions standards for aircraft, FAA NextGen program requirements, SASB TR-AE-110a.1, TR-AE-110a.2"
+          },
+          {
+            id: 2,
+            name: "Hazardous Materials",
+            financial: 0.8,
+            impact: 0.75,
+            size: 27,
+            risk: "medium",
+            info: "Management of hazardous waste from manufacturing, maintenance operations, and product design.",
+            regulation: "EPA hazardous waste generator standards, RCRA regulations, SASB TR-AE-150a.1, TR-AE-150a.2"
+          },
+          {
+            id: 3,
+            name: "Product Safety",
+            financial: 0.95,
+            impact: 0.85,
+            size: 29,
+            risk: "high",
+            info: "Aircraft design safety, defect management, and compliance with safety regulations.",
+            regulation: "FAA airworthiness certification requirements, defect reporting rules, SASB TR-AE-250a.1, TR-AE-250a.2, TR-AE-250a.3"
+          },
+          {
+            id: 4,
+            name: "Supply Chain Management",
+            financial: 0.85,
+            impact: 0.7,
+            size: 28,
+            risk: "increasing",
+            info: "Management of critical materials, supplier quality, and supply chain resilience.",
+            regulation: "Defense contract supply chain security requirements, conflict minerals reporting, SASB TR-AE-440a.1"
+          },
+          {
+            id: 5,
+            name: "Business Ethics",
+            financial: 0.9,
+            impact: 0.65,
+            size: 26,
+            risk: "high",
+            info: "Anti-corruption measures, particularly in international sales and government contracting.",
+            regulation: "Foreign Corrupt Practices Act, defense contracting ethics regulations, SASB TR-AE-510a.1, TR-AE-510a.2, TR-AE-510a.3"
+          }
+        ],
+        automotive: [{
+            id: 1,
+            name: "Fuel Economy",
+            financial: 0.9,
+            impact: 0.85,
+            size: 30,
+            risk: "high",
+            info: "Vehicle fuel efficiency, fleet emissions, and compliance with standards.",
+            regulation: "NHTSA/EPA CAFE and GHG emissions standards, ZEV mandates, SASB TR-AU-410a.1, TR-AU-410a.2, TR-AU-410a.3"
+          },
+          {
+            id: 2,
+            name: "Materials Sourcing",
+            financial: 0.8,
+            impact: 0.75,
+            size: 28,
+            risk: "increasing",
+            info: "Critical minerals for batteries, conflict minerals use, and responsible sourcing.",
+            regulation: "Dodd-Frank Section 1502 on conflict minerals, proposed battery material disclosure requirements, SASB TR-AU-440a.1, TR-AU-440b.1"
+          },
+          {
+            id: 3,
+            name: "Product Safety",
+            financial: 0.95,
+            impact: 0.8,
+            size: 29,
+            risk: "high",
+            info: "Vehicle safety features, recalls, and compliance with safety standards.",
+            regulation: "NHTSA safety standards, recall reporting requirements, SASB TR-AU-250a.1, TR-AU-250a.2, TR-AU-250a.3"
+          },
+          {
+            id: 4,
+            name: "Labor Practices",
+            financial: 0.75,
+            impact: 0.8,
+            size: 26,
+            risk: "medium",
+            info: "Employee safety, labor relations, and working conditions in manufacturing facilities.",
+            regulation: "OSHA workplace safety standards, NLRB regulations, EEO requirements, SASB TR-AU-310a.1, TR-AU-310a.2"
+          },
+          {
+            id: 5,
+            name: "Materials Efficiency",
+            financial: 0.7,
+            impact: 0.85,
+            size: 27,
+            risk: "medium",
+            info: "Resource use in manufacturing, recyclability, and end-of-life recovery.",
+            regulation: "EPA hazardous waste regulations, state recycling requirements, SASB TR-AU-440b.2, TR-AU-440b.3"
+          }
+        ],
+        chemicals: [{
+            id: 1,
+            name: "Emissions",
+            financial: 0.85,
+            impact: 0.9,
+            size: 30,
+            risk: "high",
+            info: "Air emissions from operations, including GHGs and hazardous air pollutants.",
+            regulation: "Clean Air Act Title V permits, EPA GHG reporting rule, SASB RT-CH-110a.1, RT-CH-110a.2, RT-CH-120a.1"
+          },
+          {
+            id: 2,
+            name: "Energy Management",
+            financial: 0.8,
+            impact: 0.75,
+            size: 27,
+            risk: "medium",
+            info: "Energy consumption in operations, energy efficiency, and renewable energy use.",
+            regulation: "EPA ENERGY STAR for chemicals, state energy benchmarking, SASB RT-CH-130a.1"
+          },
+          {
+            id: 3,
+            name: "Water Management",
+            financial: 0.75,
+            impact: 0.85,
+            size: 28,
+            risk: "high",
+            info: "Water use, wastewater discharge quality, and water stress management.",
+            regulation: "Clean Water Act NPDES permits, state water withdrawal permits, SASB RT-CH-140a.1, RT-CH-140a.2, RT-CH-140a.3"
+          },
+          {
+            id: 4,
+            name: "Hazardous Waste",
+            financial: 0.8,
+            impact: 0.9,
+            size: 29,
+            risk: "high",
+            info: "Generation and management of hazardous chemical waste from operations.",
+            regulation: "RCRA hazardous waste regulations, EPA Waste Minimization Program, SASB RT-CH-150a.1"
+          },
+          {
+            id: 5,
+            name: "Safety & Risk",
+            financial: 0.9,
+            impact: 0.8,
+            size: 28,
+            risk: "high",
+            info: "Operational safety, process safety incidents, and emergency management.",
+            regulation: "OSHA Process Safety Management, EPA Risk Management Plan, SASB RT-CH-320a.1, RT-CH-320a.2, RT-CH-540a.1, RT-CH-540a.2"
+          }
+        ],
+        construction: [{
+            id: 1,
+            name: "Project Impacts",
+            financial: 0.8,
+            impact: 0.9,
+            size: 29,
+            risk: "high",
+            info: "Environmental impacts from construction projects, including pollution prevention and mitigation.",
+            regulation: "EPA construction stormwater permits, NEPA/state environmental assessments, SASB IF-EN-160a.1, IF-EN-160a.2"
+          },
+          {
+            id: 2,
+            name: "Workforce Safety",
+            financial: 0.9,
+            impact: 0.85,
+            size: 30,
+            risk: "high",
+            info: "Worker health & safety, incident prevention, and safety culture.",
+            regulation: "OSHA construction industry standards, reporting requirements, SASB IF-EN-320a.1"
+          },
+          {
+            id: 3,
+            name: "Lifecycle Impacts",
+            financial: 0.75,
+            impact: 0.8,
+            size: 27,
+            risk: "increasing",
+            info: "Design for sustainability, energy efficiency, and green building certifications.",
+            regulation: "Green building standards (LEED, Energy Star), local green building codes, SASB IF-EN-410a.1, IF-EN-410a.2"
+          },
+          {
+            id: 4,
+            name: "Business Ethics",
+            financial: 0.85,
+            impact: 0.6,
+            size: 26,
+            risk: "high",
+            info: "Anti-corruption, fair bidding practices, and ethical business conduct.",
+            regulation: "Federal contracting ethics requirements, Foreign Corrupt Practices Act, SASB IF-EN-510a.1, IF-EN-510a.2, IF-EN-510a.3"
+          },
+          {
+            id: 5,
+            name: "Climate Impacts",
+            financial: 0.8,
+            impact: 0.75,
+            size: 28,
+            risk: "increasing",
+            info: "Climate change risks and resilience in project planning and execution.",
+            regulation: "Climate risk disclosure rules, flood zone construction requirements, SASB IF-EN-410b.1, IF-EN-410b.2, IF-EN-410b.3"
+          }
+        ]
+      }
+    };
+    // Variables to track editing mode and regulations display
+    let editMode = false;
+    let showRegulations = false;
+    // Helper functions
+    function mapX(val) {
+      return 100 + val * 600;
+    }
+
+    function mapY(val) {
+      return 500 - val * 400;
+    }
+
+    function getColor(financial, impact) {
+      if (financial >= 0.7 && impact >= 0.7) return "#4CAF50"; // High-High: Green
+      if (financial >= 0.7) return "#FFC107"; // High financial: Amber
+      if (impact >= 0.7) return "#2196F3"; // High impact: Blue
+      return "#FF9800"; // Lower priority: Orange
+    }
+
+    function getRiskColor(risk) {
+      switch (risk) {
+        case "high":
+          return "#E53935";
+        case "increasing":
+          return "#FF9800";
+        case "medium":
+          return "#FFC107";
+        default:
+          return "#9E9E9E";
+      }
+    }
+    // Toggle edit mode
+    function toggleEditMode() {
+      editMode = !editMode;
+      const editButton = document.getElementById('editButton');
+      const editPanel = document.getElementById('editPanel');
+      if (editMode) {
+        editButton.classList.add('active');
+        editPanel.style.display = 'block';
+        populateEditPanel();
+      } else {
+        editButton.classList.remove('active');
+        editPanel.style.display = 'none';
+      }
+    }
+    // Toggle regulation display
+    function toggleRegulationDisplay() {
+      showRegulations = !showRegulations;
+      const regulationButton = document.getElementById('regulationButton');
+      const regulationInfo = document.getElementById('regulationInfo');
+      if (showRegulations) {
+        regulationButton.classList.add('active');
+        if (regulationInfo) {
+          regulationInfo.style.display = 'block';
+        }
+      } else {
+        regulationButton.classList.remove('active');
+        if (regulationInfo) {
+          regulationInfo.style.display = 'none';
+        }
+      }
+    }
+    // Populate edit panel with form controls
+    function populateEditPanel() {
+      const framework = document.getElementById('framework').value;
+      const sector = document.getElementById('sector').value;
+      const topics = materialityData[framework][sector];
+      const editGrid = document.getElementById('editGrid');
+      // Clear existing controls
+      editGrid.innerHTML = '';
+      // Create edit controls for each topic
+      topics.forEach(topic => {
+        const editItem = document.createElement('div');
+        editItem.className = 'edit-item';
+        const title = document.createElement('div');
+        title.className = 'edit-item-title';
+        title.textContent = topic.name;
+        editItem.appendChild(title);
+        const controls = document.createElement('div');
+        controls.className = 'edit-controls';
+        // Financial materiality input
+        const financialGroup = document.createElement('div');
+        const financialLabel = document.createElement('label');
+        financialLabel.className = 'edit-label';
+        financialLabel.textContent = 'Financial Materiality';
+        const financialInput = document.createElement('input');
+        financialInput.className = 'edit-input';
+        financialInput.type = 'number';
+        financialInput.min = '0';
+        financialInput.max = '1';
+        financialInput.step = '0.05';
+        financialInput.value = topic.financial;
+        financialInput.dataset.topic = topic.id;
+        financialInput.dataset.field = 'financial';
+        financialInput.addEventListener('change', function() {
+          updateTopicValue(this.dataset.topic, this.dataset.field, this.value);
+        });
+        financialGroup.appendChild(financialLabel);
+        financialGroup.appendChild(financialInput);
+        // Impact materiality input
+        const impactGroup = document.createElement('div');
+        const impactLabel = document.createElement('label');
+        impactLabel.className = 'edit-label';
+        impactLabel.textContent = 'Impact Materiality';
+        const impactInput = document.createElement('input');
+        impactInput.className = 'edit-input';
+        impactInput.type = 'number';
+        impactInput.min = '0';
+        impactInput.max = '1';
+        impactInput.step = '0.05';
+        impactInput.value = topic.impact;
+        impactInput.dataset.topic = topic.id;
+        impactInput.dataset.field = 'impact';
+        impactInput.addEventListener('change', function() {
+          updateTopicValue(this.dataset.topic, this.dataset.field, this.value);
+        });
+        impactGroup.appendChild(impactLabel);
+        impactGroup.appendChild(impactInput);
+        controls.appendChild(financialGroup);
+        controls.appendChild(impactGroup);
+        editItem.appendChild(controls);
+        editGrid.appendChild(editItem);
+      });
+    }
+    // Update topic value when edited
+    function updateTopicValue(topicId, field, value) {
+      const framework = document.getElementById('framework').value;
+      const sector = document.getElementById('sector').value;
+      const topics = materialityData[framework][sector];
+      const numValue = parseFloat(value);
+      if (isNaN(numValue) || numValue < 0 || numValue > 1) return;
+      // Find and update the topic
+      const topicIndex = topics.findIndex(t => t.id == topicId);
+      if (topicIndex !== -1) {
+        topics[topicIndex][field] = numValue;
+        renderChart(); // Redraw the chart with updated values
+      }
+    }
+    // Show the info panel when a topic is clicked
+    function showInfoPanel(topic) {
+      const infoPanel = document.getElementById('infoPanel');
+      document.getElementById('topicTitle').textContent = topic.name;
+      document.getElementById('topicInfo').textContent = topic.info;
+      document.getElementById('financialValue').textContent = (topic.financial * 100).toFixed(0) + '%';
+      document.getElementById('impactValue').textContent = (topic.impact * 100).toFixed(0) + '%';
+      const riskElement = document.getElementById('riskValue');
+      riskElement.textContent = topic.risk.toUpperCase();
+      riskElement.style.color = getRiskColor(topic.risk);
+      // Update regulation info
+      const regulationInfo = document.getElementById('regulationInfo');
+      const regulationText = document.getElementById('regulationText');
+      if (topic.regulation) {
+        regulationText.textContent = topic.regulation;
+        regulationInfo.style.display = showRegulations ? 'block' : 'none';
+      } else {
+        regulationInfo.style.display = 'none';
+      }
+      infoPanel.style.display = 'block';
+    }
+    // Hide the info panel
+    function hideInfoPanel() {
+      document.getElementById('infoPanel').style.display = 'none';
+    }
+    // Render the chart
+    function renderChart() {
+      const framework = document.getElementById('framework').value;
+      const sector = document.getElementById('sector').value;
+      const svg = document.getElementById('chart');
+      const topics = materialityData[framework][sector];
+      // Clear the SVG
+      svg.innerHTML = '';
+      // Add Title
+      const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      title.setAttribute("x", "400");
+      title.setAttribute("y", "40");
+      title.setAttribute("font-size", "20");
+      title.setAttribute("font-weight", "bold");
+      title.setAttribute("text-anchor", "middle");
+      title.textContent = "Double Materiality Assessment";
+      svg.appendChild(title);
+      // Add Subtitle
+      const subtitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      subtitle.setAttribute("x", "400");
+      subtitle.setAttribute("y", "65");
+      subtitle.setAttribute("font-size", "14");
+      subtitle.setAttribute("text-anchor", "middle");
+      subtitle.setAttribute("fill", "#666");
+      subtitle.textContent = framework.toUpperCase() + " Framework - " + sector.charAt(0).toUpperCase() + sector.slice(1) + " Sector";
+      svg.appendChild(subtitle);
+      // Add Axes
+      const xAxis = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      xAxis.setAttribute("x1", "100");
+      xAxis.setAttribute("y1", "500");
+      xAxis.setAttribute("x2", "700");
+      xAxis.setAttribute("y2", "500");
+      xAxis.setAttribute("stroke", "#333");
+      xAxis.setAttribute("stroke-width", "2");
+      svg.appendChild(xAxis);
+      const yAxis = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      yAxis.setAttribute("x1", "100");
+      yAxis.setAttribute("y1", "500");
+      yAxis.setAttribute("x2", "100");
+      yAxis.setAttribute("y2", "100");
+      yAxis.setAttribute("stroke", "#333");
+      yAxis.setAttribute("stroke-width", "2");
+      svg.appendChild(yAxis);
+      // Add Axis Labels
+      const xLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      xLabel.setAttribute("x", "400");
+      xLabel.setAttribute("y", "540");
+      xLabel.setAttribute("font-size", "14");
+      xLabel.setAttribute("text-anchor", "middle");
+      xLabel.textContent = "Financial Materiality";
+      svg.appendChild(xLabel);
+      const yLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      yLabel.setAttribute("x", "50");
+      yLabel.setAttribute("y", "300");
+      yLabel.setAttribute("font-size", "14");
+      yLabel.setAttribute("text-anchor", "middle");
+      yLabel.setAttribute("transform", "rotate(-90, 50, 300)");
+      yLabel.textContent = "Impact Materiality";
+      svg.appendChild(yLabel);
+      // Add Scale Markers for X-axis
+      [0, 0.25, 0.5, 0.75, 1].forEach(value => {
+        const x = mapX(value);
+        // Tick mark
+        const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        tick.setAttribute("x1", x);
+        tick.setAttribute("y1", "500");
+        tick.setAttribute("x2", x);
+        tick.setAttribute("y2", "505");
+        tick.setAttribute("stroke", "#333");
+        tick.setAttribute("stroke-width", "1");
+        svg.appendChild(tick);
+        // Label
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("x", x);
+        label.setAttribute("y", "520");
+        label.setAttribute("font-size", "10");
+        label.setAttribute("text-anchor", "middle");
+        label.textContent = (value * 100) + "%";
+        svg.appendChild(label);
+      });
+      // Add Scale Markers for Y-axis
+      [0, 0.25, 0.5, 0.75, 1].forEach(value => {
+        const y = mapY(value);
+        // Tick mark
+        const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        tick.setAttribute("x1", "100");
+        tick.setAttribute("y1", y);
+        tick.setAttribute("x2", "95");
+        tick.setAttribute("y2", y);
+        tick.setAttribute("stroke", "#333");
+        tick.setAttribute("stroke-width", "1");
+        svg.appendChild(tick);
+        // Label
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("x", "85");
+        label.setAttribute("y", y + 4);
+        label.setAttribute("font-size", "10");
+        label.setAttribute("text-anchor", "end");
+        label.textContent = (value * 100) + "%";
+        svg.appendChild(label);
+      });
+      // Add Grid Lines
+      const horizontalGrid = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      horizontalGrid.setAttribute("x1", "100");
+      horizontalGrid.setAttribute("y1", "300");
+      horizontalGrid.setAttribute("x2", "700");
+      horizontalGrid.setAttribute("y2", "300");
+      horizontalGrid.setAttribute("stroke", "#ccc");
+      horizontalGrid.setAttribute("stroke-width", "1");
+      horizontalGrid.setAttribute("stroke-dasharray", "5,5");
+      svg.appendChild(horizontalGrid);
+      const verticalGrid = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      verticalGrid.setAttribute("x1", "400");
+      verticalGrid.setAttribute("y1", "100");
+      verticalGrid.setAttribute("x2", "400");
+      verticalGrid.setAttribute("y2", "500");
+      verticalGrid.setAttribute("stroke", "#ccc");
+      verticalGrid.setAttribute("stroke-width", "1");
+      verticalGrid.setAttribute("stroke-dasharray", "5,5");
+      svg.appendChild(verticalGrid);
+      // Add Legend
+      const legend1 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      legend1.setAttribute("x", "580");
+      legend1.setAttribute("y", "460");
+      legend1.setAttribute("width", "200");
+      legend1.setAttribute("height", "120");
+      legend1.setAttribute("fill", "white");
+      legend1.setAttribute("stroke", "#ccc");
+      legend1.setAttribute("rx", "5");
+      svg.appendChild(legend1);
+      const legendTitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      legendTitle.setAttribute("x", "590");
+      legendTitle.setAttribute("y", "480");
+      legendTitle.setAttribute("font-size", "14");
+      legendTitle.setAttribute("font-weight", "bold");
+      legendTitle.textContent = "Priority Legend:";
+      svg.appendChild(legendTitle);
+      // Legend items
+      const legendItems = [{
+          color: "#4CAF50",
+          text: "High Impact & Financial",
+          y: 500
+        },
+        {
+          color: "#FFC107",
+          text: "High Financial Priority",
+          y: 520
+        },
+        {
+          color: "#2196F3",
+          text: "High Impact Priority",
+          y: 540
+        },
+        {
+          color: "#E53935",
+          text: "High Regulatory Risk",
+          y: 560
+        }
+      ];
+      legendItems.forEach(item => {
+        const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        dot.setAttribute("cx", "600");
+        dot.setAttribute("cy", item.y);
+        dot.setAttribute("r", "6");
+        dot.setAttribute("fill", item.color);
+        svg.appendChild(dot);
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", "615");
+        text.setAttribute("y", item.y + 4);
+        text.setAttribute("font-size", "12");
+        text.textContent = item.text;
+        svg.appendChild(text);
+      });
+      // Add Topics
+      topics.forEach(topic => {
+        // Create group for topic
+        const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        group.setAttribute("cursor", "pointer");
+        group.onclick = function() {
+          showInfoPanel(topic);
+        };
+        // Add circle
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", mapX(topic.financial));
+        circle.setAttribute("cy", mapY(topic.impact));
+        circle.setAttribute("r", topic.size);
+        circle.setAttribute("fill", getColor(topic.financial, topic.impact));
+        circle.setAttribute("fill-opacity", "0.7");
+        circle.setAttribute("stroke", "#333");
+        circle.setAttribute("stroke-width", "1");
+        group.appendChild(circle);
+        // Add risk indicator if applicable
+        if (topic.risk === "high" || topic.risk === "increasing") {
+          const riskIndicator = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          riskIndicator.setAttribute("cx", mapX(topic.financial) + 15);
+          riskIndicator.setAttribute("cy", mapY(topic.impact) - 15);
+          riskIndicator.setAttribute("r", "8");
+          riskIndicator.setAttribute("fill", getRiskColor(topic.risk));
+          riskIndicator.setAttribute("stroke", "#fff");
+          riskIndicator.setAttribute("stroke-width", "1");
+          group.appendChild(riskIndicator);
+        }
+        // Add label text
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", mapX(topic.financial));
+        text.setAttribute("y", mapY(topic.impact));
+        text.setAttribute("font-size", "11");
+        text.setAttribute("font-weight", "bold");
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("fill", "#333");
+        text.textContent = topic.name;
+        group.appendChild(text);
+        svg.appendChild(group);
+      });
+      // Update edit panel if in edit mode
+      if (editMode) {
+        populateEditPanel();
+      }
+    }
+    // Initialize the chart on page load
+    document.addEventListener('DOMContentLoaded', renderChart);
+  </script>
+</body>
+
+</html>
